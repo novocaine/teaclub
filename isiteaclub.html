@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script type="text/javascript"
+        src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
+    <script type="text/javascript"
+        src="http://ricostacruz.com/jquery.transit/jquery.transit.min.js"></script>
+    <style>
+        body {
+            margin: 200px auto;
+            width: 200px;
+            text-align: center;
+        }
+
+        #yes {
+            width: 50px;
+            left: 50%;
+            margin-left: -25px;
+            position: absolute;
+            font-size: 48px;
+            font-family: Helvetica,sans-serif;
+            -webkit-backface-visibility: hidden;
+        }
+        
+    </style>
+</head>
+
+<body title="Is it tea club today?">
+<div id="no" style="display: none">NO</div>
+<span id="yes">YES</span>
+
+<script type="text/javascript">
+    var elem = $("#yes");
+
+    var _top = 200, bottom = -200, left = -200, right = 200;
+
+    var SCALE = 3.0;
+
+    var solve = function(x, y, heading, current) {
+        var m = Math.tan(heading);
+        var b = y - m*x;
+
+        // solve (_top, bottom) = m*x + b
+        if (current !== "top") {
+            var top_x = (_top - b) / m;
+            if (top_x >= left && top_x <= right) {
+                return {
+                    x: top_x,
+                    y: _top,
+                    next: "top"
+                }
+            }
+        }
+
+        if (current !== "bottom") {
+            var bottom_x = (bottom - b) / m; 
+            if (bottom_x >= left && bottom_x <= right) {
+                return {
+                    x: bottom_x,
+                    y: bottom,
+                    next: "bottom"
+                }
+            }
+        }
+
+        // solve y = m*(left, right) + b
+        if (current !== "left") {
+            var left_y = m*left + b;
+            if (left_y >= bottom && left_y <= _top) {
+                return {
+                    x: left,
+                    y: left_y,
+                    next: "left"
+                }
+            }
+        }
+    
+        var right_y = m*right + b;
+        return {
+            x: right,
+            y: right_y,
+            next: "right"
+        }
+    }
+
+
+    var move = function(x, y, heading, current) {
+        // bounce
+        var sol = solve(x, y, heading, current);
+        // console.log(sol);
+        // turn
+        var m = Math.tan(heading);
+        heading = Math.atan(-m);
+        // console.log(heading);
+
+        return {
+            heading: heading,
+            x: sol.x,
+            y: sol.y,
+            next: sol.next
+        }
+    };
+
+    var calcnext = function(prev) {
+        var next = move(prev.x, prev.y, prev.heading, prev.next); 
+        next.scale = prev.scale == SCALE ? 1.0 : SCALE;
+        var dx = prev.x - next.x;
+        var dy = prev.y - next.y;
+        var distance = Math.sqrt(dx*dx + dy*dy);
+        next.time = distance*1.5;
+        return next;
+    };
+
+    var tick = function(prev) {
+        var next = calcnext(prev);
+        anim(next.x, next.y, next.scale, next.time,
+            function() { tick(next); });
+    };
+
+    var anim = function(x, y, scale, time, done) {
+        elem.transition({
+            x: x,
+            y: y,
+            scale: scale
+        }, time, 'linear', done);
+    };
+
+    var next = move(0, _top, Math.PI / 8, "top");
+
+    tick(next);
+
+</script>
+</body>
+</html>
